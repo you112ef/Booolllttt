@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
-import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { useEffect } from 'react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
+import { json, type LinksFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import { useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -16,11 +16,20 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+import { hydrateCodeServerConfig } from '~/lib/stores/codeServer';
+import { getCodeServerConfigFromEnv, resolveRuntimeEnv } from '~/lib/server/env';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
 });
+
+export async function loader({ context }: LoaderFunctionArgs) {
+  const env = resolveRuntimeEnv(context);
+  const codeServerConfig = getCodeServerConfigFromEnv(env);
+
+  return json({ codeServerConfig });
+}
 
 export const links: LinksFunction = () => [
   {
@@ -115,7 +124,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 import { logStore } from './lib/stores/logs';
 
 export default function App() {
+  const { codeServerConfig } = useLoaderData<typeof loader>();
   const theme = useStore(themeStore);
+
+  useEffect(() => {
+    hydrateCodeServerConfig(codeServerConfig);
+
+    if (typeof window !== 'undefined') {
+      (window as typeof window & { __boltCodeServerConfig?: typeof codeServerConfig }).__boltCodeServerConfig =
+        codeServerConfig;
+    }
+  }, [codeServerConfig]);
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
@@ -142,7 +161,7 @@ export default function App() {
       .catch((error) => {
         logStore.logError('Failed to initialize debug logging', error);
       });
-  }, []);
+  }, [theme]);
 
   return (
     <Layout>

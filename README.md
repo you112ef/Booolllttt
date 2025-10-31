@@ -58,6 +58,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Voice Prompting** - Audio input for prompts
 - **Bulk Chat Operations** - Delete multiple chats at once
 - **Project Snapshot Restoration** - Restore projects from snapshots on reload
+- **Cloudflare code-server Sessions** - Launch, monitor, and embed real code-server IDE sessions via Cloudflare provisioning ([docs](./docs/code-server.md))
 
 ### 🔄 In Progress / Planned
 - **File Locking & Diff Improvements** - Enhanced conflict prevention
@@ -87,6 +88,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Diff view** to see changes made by the AI.
 - **Supabase integration** for database management and queries.
 - **Expo app creation** for React Native development.
+- **Cloudflare-native code-server integration** with inline iframe embedding and short-lived JWT access tokens.
 
 ## Setup
 

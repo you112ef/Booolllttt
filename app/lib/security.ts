@@ -1,5 +1,38 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/cloudflare';
 
+type SecurityEnv = {
+  frameAllowedOrigins: string[];
+  connectAllowedOrigins: string[];
+};
+
+function normalizeOrigins(value: string | undefined, defaults: string[] = []): string[] {
+  if (!value) {
+    return defaults;
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0),
+    ),
+  );
+}
+
+function resolveSecurityEnv(args?: ActionFunctionArgs | LoaderFunctionArgs): SecurityEnv {
+  const env = (args as ActionFunctionArgs)?.context?.cloudflare?.env ??
+    (args as LoaderFunctionArgs)?.context?.cloudflare?.env ??
+    (process.env as Record<string, string | undefined>);
+
+  const defaultFrameOrigins = ["'self'"];
+
+  return {
+    frameAllowedOrigins: normalizeOrigins(env?.CODE_SERVER_FRAME_ALLOWED_ORIGINS, defaultFrameOrigins),
+    connectAllowedOrigins: normalizeOrigins(env?.CODE_SERVER_CONNECT_ALLOWED_ORIGINS),
+  };
+}
+
 // Rate limiting store (in-memory for serverless environments)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
@@ -80,10 +113,26 @@ function getClientIP(request: Request): string {
 /**
  * Security headers middleware
  */
-export function createSecurityHeaders() {
+export function createSecurityHeaders(args?: ActionFunctionArgs | LoaderFunctionArgs) {
+  const { frameAllowedOrigins, connectAllowedOrigins } = resolveSecurityEnv(args);
+  const frameSrc = Array.from(new Set(frameAllowedOrigins));
+  const frameAncestors = frameSrc;
+  const connectSrc = Array.from(
+    new Set([
+      "'self'",
+      'https://api.github.com',
+      'https://api.netlify.com',
+      ...connectAllowedOrigins,
+    ]),
+  );
+
+  if (!connectSrc.some((origin) => origin === 'wss:' || origin.startsWith('wss://'))) {
+    connectSrc.push('wss:');
+  }
+
   return {
     // Prevent clickjacking
-    'X-Frame-Options': 'DENY',
+    'X-Frame-Options': 'SAMEORIGIN',
 
     // Prevent MIME type sniffing
     'X-Content-Type-Options': 'nosniff',
@@ -98,8 +147,9 @@ export function createSecurityHeaders() {
       "style-src 'self' 'unsafe-inline'", // Allow inline styles
       "img-src 'self' data: https: blob:", // Allow images from same origin, data URLs, and HTTPS
       "font-src 'self' data:", // Allow fonts from same origin and data URLs
-      "connect-src 'self' https://api.github.com https://api.netlify.com", // Allow connections to GitHub and Netlify APIs
-      "frame-src 'none'", // Prevent iframe embedding
+      `connect-src ${connectSrc.join(' ')}`,
+      `frame-src ${frameSrc.join(' ')}`,
+      `frame-ancestors ${frameAncestors.join(' ')}`,
       "object-src 'none'", // Prevent object embedding
       "base-uri 'self'",
       "form-action 'self'",
@@ -187,7 +237,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
     if (options.allowedMethods && !options.allowedMethods.includes(request.method)) {
       return new Response('Method not allowed', {
         status: 405,
-        headers: createSecurityHeaders(),
+        headers: createSecurityHeaders(args),
       });
     }
 
@@ -199,7 +249,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         return new Response('Rate limit exceeded', {
           status: 429,
           headers: {
-            ...createSecurityHeaders(),
+            ...createSecurityHeaders(args),
             'Retry-After': Math.ceil((rateLimitResult.resetTime! - Date.now()) / 1000).toString(),
             'X-RateLimit-Reset': rateLimitResult.resetTime!.toString(),
           },
@@ -213,7 +263,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
 
       // Add security headers to response
       const responseHeaders = new Headers(response.headers);
-      Object.entries(createSecurityHeaders()).forEach(([key, value]) => {
+      Object.entries(createSecurityHeaders(args)).forEach(([key, value]) => {
         responseHeaders.set(key, value);
       });
 
@@ -235,7 +285,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         {
           status: 500,
           headers: {
-            ...createSecurityHeaders(),
+            ...createSecurityHeaders(args),
             'Content-Type': 'application/json',
           },
         },

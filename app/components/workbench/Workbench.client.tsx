@@ -29,12 +29,15 @@ import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportCh
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { CodeServerLauncher } from './CodeServerLauncher';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
   isStreaming?: boolean;
   metadata?: {
     gitUrl?: string;
+    workspaceId?: string;
+    userId?: string;
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
@@ -284,7 +287,7 @@ export const Workbench = memo(
   ({
     chatStarted,
     isStreaming,
-    metadata: _metadata,
+    metadata,
     updateChatMestaData: _updateChatMestaData,
     setSelectedElement,
   }: WorkspaceProps) => {
@@ -463,6 +466,11 @@ export const Workbench = memo(
                           <div className="i-ph:terminal" />
                           Toggle Terminal
                         </button>
+                      </div>
+
+                      {/* Code Server Launcher */}
+                      <div className="ml-1 flex-shrink-0">
+                        <CodeServerLauncher workspaceId={metadata?.workspaceId} userId={metadata?.userId} />
                       </div>
                     </div>
                   )}
