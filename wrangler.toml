@@ -4,3 +4,21 @@ compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
 send_metrics = false
+
+[vars]
+BOLT_WORKSPACE_ID = "bolt-dev-workspace"
+CODE_SERVER_ALLOWED_RESOURCE_PROFILES = "small,medium,large"
+CODE_SERVER_DEFAULT_RESOURCE_PROFILE = "medium"
+CODE_SERVER_SESSION_TTL_MINUTES = "30"
+
+[[kv_namespaces]]
+binding = "CODE_SERVER_SESSIONS"
+# TODO: replace the placeholder IDs below with the actual namespace identifiers via `wrangler kv namespace list`
+id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+preview_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+[[kv_namespaces]]
+binding = "CODE_SERVER_AUDIT_LOG"
+# TODO: replace the placeholder IDs below with the actual namespace identifiers via `wrangler kv namespace list`
+id = "cccccccccccccccccccccccccccccccc"
+preview_id = "dddddddddddddddddddddddddddddddd"

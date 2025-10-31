@@ -1,0 +1,28 @@
+{
+  "name": "code-server-controller",
+  "version": "0.1.0",
+  "description": "Cloudflare Bolt code-server provisioning controller",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.2",
+    "fastify": "^4.28.1",
+    "fastify-plugin": "^4.5.0",
+    "http-proxy": "^1.18.1",
+    "jose": "^5.9.6",
+    "pino": "^9.5.0",
+    "uuid": "^11.0.2"
+  },
+  "devDependencies": {
+    "@types/http-proxy": "^1.17.14",
+    "@types/node": "^22.7.4",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.7.2"
+  }
+}

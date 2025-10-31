@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DeployButton } from '~/components/deploy/DeployButton';
+import { CodeServerLauncher } from '~/components/code-server/CodeServerLauncher.client';
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;
@@ -18,6 +19,8 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
     <div className="flex items-center gap-1">
       {/* Deploy Button */}
       {shouldShowButtons && <DeployButton />}
+
+      {shouldShowButtons && <CodeServerLauncher className="ml-2" />}
 
       {/* Debug Tools */}
       {shouldShowButtons && (

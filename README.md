@@ -27,6 +27,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - [Available Scripts](#available-scripts)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
+- [Cloud Code Server Sessions](#cloud-code-server-sessions)
 - [FAQ](#faq)
 
 ## Join the community
@@ -225,6 +226,84 @@ For users who prefer a native desktop experience, bolt.diy is also available as 
    ```
 
 The desktop app provides the same full functionality as the web version with additional native features.
+
+## Cloud Code Server Sessions
+
+Bolt now supports launching **real code-server containers** directly from the UI. When the workbench is active you will
+see an “Open in Code Server” button inside the header actions – clicking it provisions an isolated VS Code compatible
+workspace backed by Docker. The experience is fully live: editing, saving, terminals, extensions, and background tasks
+all run inside the remote container.
+
+### 1. Provision the controller service
+
+The controller is a small Fastify application located at `services/code-server-controller`. It talks to Docker,
+performs health checks, and exposes an authenticated proxy endpoint used by the Remix worker.
+
+```bash
+# from the repo root
+pnpm install
+pnpm --filter code-server-controller build
+
+# Example: run locally (requires Docker)
+CODE_SERVER_JWT_PUBLIC_KEY="$(cat public-key.pem)" \
+CONTROLLER_PUBLIC_URL="https://controller.example.com" \
+CONTROLLER_API_TOKEN="super-secret" \
+pnpm --filter code-server-controller start
+```
+
+Docker must be available on the host. Mount points follow the defaults from `services/code-server-controller/src/config.ts`
+(`./workspaces` and `./code-server-data`). Adjust environment variables as needed (for example to move volumes or tweak
+resource profiles).
+
+### 2. Configure the Remix worker
+
+The Remix application calls the controller through the following environment variables. Secrets should be stored with
+`wrangler secret put ...` while non-sensitive defaults can live in `wrangler.toml`.
+
+| Variable | Purpose |
+| --- | --- |
+| `CODE_SERVER_CONTROLLER_URL` | Base URL of the controller (e.g. `https://controller.example.com`) |
+| `CODE_SERVER_CONTROLLER_TOKEN` | Bearer token that authenticates provisioning requests |
+| `CODE_SERVER_JWT_PRIVATE_KEY` | RS256 private key used to mint short-lived session JWTs |
+| `CODE_SERVER_JWT_PUBLIC_KEY` | Matching public key – also supplied to the controller |
+| `CODE_SERVER_JWT_ISSUER` / `CODE_SERVER_JWT_AUDIENCE` / `CODE_SERVER_JWT_KID` | Metadata embedded in the JWT header and payload |
+| `CODE_SERVER_USER_JWT_SECRET` | HS256 secret for end-user auth cookies |
+| `CODE_SERVER_ALLOWED_RESOURCE_PROFILES` | Comma-separated profiles (`small,medium,large`) |
+| `CODE_SERVER_DEFAULT_RESOURCE_PROFILE` | Default profile when the client does not request one |
+| `CODE_SERVER_SESSION_TTL_MINUTES` | Base TTL before idle sessions are shut down |
+| `CODE_SERVER_PERMISSIONS_URL` / `CODE_SERVER_PERMISSIONS_TOKEN` | Optional external permission check endpoint |
+| `BOLT_WORKSPACE_ID` | Identifier of the workspace being served |
+
+In addition, replace the placeholder KV namespace IDs that were added to `wrangler.toml`:
+
+```bash
+wrangler kv namespace create CODE_SERVER_SESSIONS
+wrangler kv namespace create CODE_SERVER_AUDIT_LOG
+# update wrangler.toml with the output IDs
+```
+
+Finally, register the secrets:
+
+```bash
+wrangler secret put CODE_SERVER_CONTROLLER_TOKEN
+wrangler secret put CODE_SERVER_JWT_PRIVATE_KEY
+wrangler secret put CODE_SERVER_JWT_PUBLIC_KEY
+wrangler secret put CODE_SERVER_USER_JWT_SECRET
+# add others (permissions token, etc.) as required
+```
+
+### 3. Launching from the UI
+
+Once both the controller and environment configuration are in place, deploy the Remix app (or run `pnpm dev`). Start a
+chat so the workbench becomes visible and click **Open in Code Server**. The modal displays provisioning progress and
+lets you:
+
+- monitor live status (`Starting → Ready → Connected`)
+- open the full interface in a new tab
+- stop the container when you are finished
+
+The embed uses same-origin iframes with sandbox permissions and relies on HttpOnly cookies to transport the session JWT,
+meeting Cloudflare’s origin and privacy requirements.
 
 ## Configuring API Keys and Providers
 
