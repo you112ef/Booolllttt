@@ -78,9 +78,7 @@ export const listToolAvailability = (env?: Record<string, unknown>): ToolAvailab
     const prerequisiteResults = (tool.prerequisites ?? []).map((prerequisite) => resolvePrerequisite(prerequisite, envRecord));
 
     const available = prerequisiteResults.every((result) => result.available !== false);
-    const missing = prerequisiteResults
-      .flatMap((result, index) => (result.available ? [] : [tool.prerequisites?.[index] ?? 'onbekend']))
-      .filter(Boolean);
+    const missing = prerequisiteResults.flatMap((result) => result.available ? [] : result.missing).filter(Boolean);
     const viaEnvironment = prerequisiteResults.some((result) => result.viaEnvironment);
 
     return {
