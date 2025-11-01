@@ -12,6 +12,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constant
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
+import { agentTaskManager } from './task-manager';
 
 const logger = createScopedLogger('AgentOrchestrator');
 
@@ -109,6 +110,8 @@ export class AgentOrchestrator {
       createdAt: now,
       updatedAt: now,
     };
+
+    agentTaskManager.registerTask(task);
 
     return {
       task,

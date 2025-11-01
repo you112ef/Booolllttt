@@ -32,6 +32,46 @@ export interface AgentTask {
   error?: string;
 }
 
+export interface AgentToolDefinition {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  category: 'analysis' | 'code' | 'devops' | 'data' | 'support';
+  execution: {
+    type: 'mcp' | 'api' | 'shell' | 'workflow';
+    entryPoint: string;
+    args?: Record<string, unknown>;
+  };
+  prerequisites?: string[];
+  docsUrl?: string;
+}
+
+export type AgentEventType =
+  | 'task-planned'
+  | 'task-updated'
+  | 'task-completed'
+  | 'task-failed'
+  | 'step-started'
+  | 'step-completed'
+  | 'step-failed';
+
+export interface AgentEventPayload {
+  task: AgentTask;
+  stepId?: string;
+  message?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface AgentEvent {
+  type: AgentEventType;
+  timestamp: string;
+  payload: AgentEventPayload;
+}
+
+export type AgentEventListener = (event: AgentEvent) => void;
+
+
 export interface AgentContext {
   files?: string[];
   notes?: string;

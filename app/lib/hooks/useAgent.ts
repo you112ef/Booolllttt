@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
-import type { AgentRequest, AgentResponse } from '~/lib/modules/agent/types';
+import type { AgentRequest, AgentResponse, AgentTask } from '~/lib/modules/agent/types';
 import { useAgentStore } from '~/lib/stores/agent';
 
 export function useAgent() {
@@ -15,6 +15,25 @@ export function useAgent() {
   const togglePanel = useAgentStore((state) => state.togglePanel);
   const removeTask = useAgentStore((state) => state.removeTask);
   const setActiveTask = useAgentStore((state) => state.setActiveTask);
+  const setTasks = useAgentStore((state) => state.setTasks);
+
+  const refreshTasks = useCallback(async () => {
+    try {
+      const response = await fetch('/api/agent/run');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch agent tasks (${response.status})`);
+      }
+
+      const data = (await response.json()) as { tasks?: AgentTask[] };
+
+      if (Array.isArray(data.tasks)) {
+        setTasks(data.tasks);
+      }
+    } catch (error) {
+      console.error('Failed to refresh agent tasks', error);
+    }
+  }, [setTasks]);
 
   const startTask = useCallback(
     async (payload: AgentRequest) => {
@@ -53,6 +72,8 @@ export function useAgent() {
           toast.success('Advanced agent plan generated');
         }
 
+        await refreshTasks();
+
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Advanced agent failed';
@@ -63,7 +84,7 @@ export function useAgent() {
         setProcessing(false);
       }
     },
-    [addTask, setActiveTask, setError, setProcessing, togglePanel],
+    [addTask, refreshTasks, setActiveTask, setError, setProcessing, togglePanel],
   );
 
   const deleteTask = useCallback(
@@ -86,5 +107,6 @@ export function useAgent() {
     togglePanel,
     deleteTask,
     setActiveTask,
+    refreshTasks,
   };
 }

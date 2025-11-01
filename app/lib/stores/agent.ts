@@ -11,6 +11,7 @@ interface AgentStoreState {
   setError: (error?: string) => void;
   togglePanel: (open?: boolean) => void;
   setActiveTask: (taskId?: string) => void;
+  setTasks: (tasks: AgentTask[]) => void;
   addTask: (task: AgentTask) => void;
   updateTask: (taskId: string, updater: (task: AgentTask) => AgentTask) => void;
   removeTask: (taskId: string) => void;
@@ -34,6 +35,18 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
       isPanelOpen: typeof open === 'boolean' ? open : !state.isPanelOpen,
     })),
   setActiveTask: (taskId) => set((state) => ({ ...state, activeTaskId: taskId })),
+  setTasks: (tasks) =>
+    set((state) => {
+      const nextTasks = [...tasks].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      const activeTaskId = state.activeTaskId && nextTasks.some((task) => task.id === state.activeTaskId)
+        ? state.activeTaskId
+        : nextTasks[0]?.id;
+      return {
+        ...state,
+        tasks: nextTasks,
+        activeTaskId,
+      };
+    }),
   addTask: (task) =>
     set((state) => ({
       ...state,

@@ -1,5 +1,6 @@
 import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { AgentOrchestrator } from '~/lib/.server/agent/orchestrator';
+import { agentTaskManager } from '~/lib/.server/agent/task-manager';
 import type { AgentRequest } from '~/lib/modules/agent/types';
 import type { IProviderConfig, IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
@@ -43,6 +44,10 @@ function safeJsonParse<T>(value: string | undefined): T | undefined {
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
+  if (request.method === 'GET') {
+    return json({ tasks: agentTaskManager.getTasks() });
+  }
+
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
