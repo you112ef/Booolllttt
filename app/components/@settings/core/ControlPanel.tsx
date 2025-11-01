@@ -176,20 +176,32 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
   const getStatusMessage = (tabId: TabType): string => {
     switch (tabId) {
-      case 'features':
-        return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
-      case 'notifications':
-        return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
+      case 'features': {
+        const count = unviewedFeatures.length;
+        if (!count) {
+          return '';
+        }
+        return `${count} ${count === 1 ? 'nieuwe functie om te ontdekken' : 'nieuwe functies om te ontdekken'}`;
+      }
+      case 'notifications': {
+        const count = unreadNotifications.length;
+        if (!count) {
+          return '';
+        }
+        return `${count} ${count === 1 ? 'ongelezen melding' : 'ongelezen meldingen'}`;
+      }
       case 'github':
       case 'gitlab':
       case 'supabase':
       case 'vercel':
       case 'netlify':
-        return currentIssue === 'disconnected'
-          ? 'Connection lost'
-          : currentIssue === 'high-latency'
-            ? 'High latency detected'
-            : 'Connection issues detected';
+        if (currentIssue === 'disconnected') {
+          return 'Verbinding verbroken';
+        }
+        if (currentIssue === 'high-latency') {
+          return 'Hoge latentie gedetecteerd';
+        }
+        return 'Er zijn verbindingsproblemen';
       default:
         return '';
     }
@@ -224,18 +236,18 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modern-scrollbar">
+        <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center px-4 md:px-6 py-6 md:py-10 modern-scrollbar">
           <RadixDialog.Overlay className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-200" />
 
           <RadixDialog.Content
             aria-describedby={undefined}
             onEscapeKeyDown={handleClose}
             onPointerDownOutside={handleClose}
-            className="relative z-[101]"
+            className="relative z-[101] flex w-full justify-center"
           >
             <div
               className={classNames(
-                'w-[1200px] h-[90vh]',
+                'w-full max-w-[1200px] h-[calc(100vh-2rem)] md:h-[90vh]',
                 'bg-bolt-elements-background-depth-1',
                 'rounded-2xl shadow-2xl',
                 'border border-bolt-elements-borderColor',
@@ -250,31 +262,31 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
               </div>
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
                     {(activeTab || showTabManagement) && (
                       <button
                         onClick={handleBack}
-                        className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-colors duration-150"
+                        aria-label="Terug"
+                        className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-colors duration-150"
                       >
                         <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                       </button>
                     )}
                     <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
+                      {showTabManagement ? 'Tabbladen beheren' : activeTab ? TAB_LABELS[activeTab] : 'Instellingen'}
                     </DialogTitle>
                   </div>
 
-                  <div className="flex items-center gap-6">
-                    {/* Avatar and Dropdown */}
-                    <div className="pl-6">
+                  <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6">
+                    <div className="pl-0 md:pl-6">
                       <AvatarDropdown onSelectTab={handleTabClick} />
                     </div>
 
-                    {/* Close Button */}
                     <button
                       onClick={handleClose}
-                      className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                      aria-label="Instellingen sluiten"
+                      className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                     >
                       <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                     </button>
@@ -295,16 +307,11 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                     'touch-auto',
                   )}
                 >
-                  <div
-                    className={classNames(
-                      'p-6 transition-opacity duration-150',
-                      activeTab || showTabManagement ? 'opacity-100' : 'opacity-100',
-                    )}
-                  >
+                  <div className={classNames('p-4 md:p-6 transition-opacity duration-150')}>
                     {activeTab ? (
                       getTabComponent(activeTab)
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 relative">
                         {visibleTabs.map((tab, index) => (
                           <div
                             key={tab.id}

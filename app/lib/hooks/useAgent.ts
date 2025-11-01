@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import type { AgentRequest, AgentResponse, AgentTask } from '~/lib/modules/agent/types';
 import { useAgentStore } from '~/lib/stores/agent';
@@ -96,6 +96,24 @@ export function useAgent() {
     },
     [activeTaskId, removeTask, setActiveTask],
   );
+
+  useEffect(() => {
+    refreshTasks();
+  }, [refreshTasks]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || tasks.length === 0) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      refreshTasks();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [tasks.length, refreshTasks]);
 
   return {
     tasks,

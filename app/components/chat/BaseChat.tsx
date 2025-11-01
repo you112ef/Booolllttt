@@ -34,6 +34,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { AgentTaskPanel } from './AgentTaskPanel';
+import { AgentStatusFeed } from './AgentStatusFeed';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -145,6 +146,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [isDesktopLayout, setIsDesktopLayout] = useState(true);
+    const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
 
     useEffect(() => {
       if (expoUrl) {
@@ -167,6 +170,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const handleResize = () => {
+        const desktop = window.innerWidth >= 1024;
+        setIsDesktopLayout(desktop);
+        if (desktop) {
+          setIsMobileToolsOpen(false);
+        }
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }, []);
 
     useEffect(() => {
       if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -340,6 +364,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    const renderWorkbench = () => (
+      <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
+    );
+
     const baseChat = (
       <div
         ref={ref}
@@ -349,6 +377,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
+            {!isDesktopLayout && (
+              <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:hidden">
+                <span className="text-sm font-medium text-bolt-elements-textSecondary">Hulpmiddelenpaneel</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileToolsOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-bolt-elements-borderColor px-3 py-1 text-sm font-medium text-bolt-elements-textPrimary hover:border-purple-500 hover:text-purple-500 transition-colors"
+                >
+                  <span className="i-ph:squares-four w-4 h-4" />
+                  Openen
+                </button>
+              </div>
+            )}
             {!chatStarted && (
               <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
@@ -491,12 +532,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </div>
           </div>
-          <ClientOnly>
-            {() => (
-              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
-            )}
-          </ClientOnly>
+        <ClientOnly>
+          {() => (
+            <div className="hidden lg:flex lg:w-[420px] xl:w-[480px] border-l border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/40">
+              {renderWorkbench()}
+            </div>
+          )}
+        </ClientOnly>
         </div>
+        {!isDesktopLayout && isMobileToolsOpen && (
+          <div className="fixed inset-0 z-[120] flex flex-col bg-bolt-elements-background-depth-1">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-bolt-elements-borderColor">
+              <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                <span className="i-ph:squares-four w-4 h-4" />
+                <span>Werkbank</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileToolsOpen(false)}
+                className="inline-flex items-center gap-2 rounded-full border border-bolt-elements-borderColor px-3 py-1 text-sm font-medium text-bolt-elements-textPrimary hover:border-purple-500 hover:text-purple-500 transition-colors"
+              >
+                Sluiten
+                <span className="i-ph:x w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto modern-scrollbar">
+              <ClientOnly>{renderWorkbench}</ClientOnly>
+            </div>
+          </div>
+        )}
+        <AgentStatusFeed />
       </div>
     );
 
@@ -515,7 +580,7 @@ function ScrollToBottom() {
           className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
           onClick={() => scrollToBottom()}
         >
-          Go to last message
+          Ga naar laatste bericht
           <span className="i-ph:arrow-down animate-bounce" />
         </button>
       </>
