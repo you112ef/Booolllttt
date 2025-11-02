@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+RUN useradd -ms /bin/bash sandbox
+WORKDIR /workspace
+
+# Install minimal tooling used by the sandbox executor.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git build-essential curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Restrict permissions and drop privileges.
+RUN chown -R sandbox:sandbox /workspace
+USER sandbox
+
+ENV PYTHONUNBUFFERED=1
+
+ENTRYPOINT ["/bin/bash", "-lc"]

@@ -1,0 +1,11 @@
+{
+  "name": "@ai-coding-assistant/shared",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared TypeScript utilities and SDKs for the AI coding assistant platform.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "echo \"Add build pipeline (tsup/esbuild) here\""
+  }
+}

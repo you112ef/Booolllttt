@@ -1,0 +1,10 @@
+{
+  "name": "ai-coding-assistant-api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "API gateway for the AI coding assistant platform.",
+  "scripts": {
+    "dev": "echo \"Bootstrap Next.js or Fastify server here\"",
+    "build": "echo \"Add build script once framework is installed\""
+  }
+}
