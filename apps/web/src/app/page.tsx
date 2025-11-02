@@ -1,64 +1,156 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { AgentStatusDashboard, type TaskStatusSnapshot } from "@frontend/components/AgentStatusDashboard";
+import { ApiKeyInputForm } from "@frontend/components/ApiKeyInputForm";
+import { TaskSubmissionForm, type TaskSubmissionPayload } from "@frontend/components/TaskSubmissionForm";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export default function Home() {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [taskStatus, setTaskStatus] = useState<TaskStatusSnapshot | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  const hasApiKey = useMemo(() => typeof apiKey === "string" && apiKey.length > 0, [apiKey]);
+
+  const handleApiKeySubmit = (submittedKey: string) => {
+    setApiKey(submittedKey);
+    setInfo("API key opgeslagen voor deze sessie. Dien nu een taak in om de workflow te starten.");
+    setError(null);
+  };
+
+  const handleTaskSubmission = async (payload: TaskSubmissionPayload) => {
+    if (!hasApiKey || !apiKey) {
+      setError("Voer eerst je OpenRouter API key in.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/submit_task`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          api_key: apiKey,
+          feature_description: payload.featureDescription,
+          target_language: payload.targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Kon de taak niet starten.");
+      }
+
+      const data = (await response.json()) as { task_id: string };
+      setTaskId(data.task_id);
+      setTaskStatus(null);
+      setInfo("Taak aangemaakt. De agent doorloopt nu de Plan -> Act -> Observe -> Fix cyclus.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Onbekende fout tijdens het starten van de taak.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const refreshTaskStatus = useCallback(async () => {
+    if (!taskId) {
+      return;
+    }
+
+    try {
+      setIsPolling(true);
+      const response = await fetch(`${API_BASE_URL}/api/task_status/${taskId}`);
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Kon de taakstatus niet ophalen.");
+      }
+
+      const data = (await response.json()) as TaskStatusSnapshot;
+      setTaskStatus(data);
+      setError(null);
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : "Onbekende fout tijdens het ophalen van de status.");
+    } finally {
+      setIsPolling(false);
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    if (!taskId) {
+      return;
+    }
+
+    void refreshTaskStatus();
+    const interval = window.setInterval(() => {
+      void refreshTaskStatus();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [taskId, refreshTaskStatus]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex min-h-screen justify-center bg-gradient-to-br from-zinc-50 via-white to-zinc-100 px-4 py-10 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <main className="flex w-full max-w-5xl flex-col gap-10">
+        <header className="space-y-4">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            OpenDevAgent - Kilo geinspireerde software engineer
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="max-w-3xl text-base text-zinc-600 dark:text-zinc-300">
+            Voer je OpenRouter API key in, beschrijf een taak en laat de multi-agent orchestrator (Architect -> Coder -> Sandbox -> Debugger) autonoom de Plan-Act-Observe-Fix loop doorlopen.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        </header>
+
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="text-lg font-semibold">1. API key</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                De sleutel wordt veilig doorgestuurd naar de backend en alleen gebruikt voor deze workflow.
+              </p>
+              <div className="mt-4">
+                <ApiKeyInputForm onSubmit={handleApiKeySubmit} disabled={isSubmitting} />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="text-lg font-semibold">2. Taakdetails</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Bepaal welke feature, stack en requirements je wilt laten bouwen.
+              </p>
+              <div className="mt-4">
+                <TaskSubmissionForm onSubmit={handleTaskSubmission} disabled={!hasApiKey || isSubmitting} />
+              </div>
+            </div>
+
+            {(error || info) && (
+              <div
+                className={`rounded-lg border px-4 py-3 text-sm ${
+                  error
+                    ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300"
+                }`}
+              >
+                {error ?? info}
+              </div>
+            )}
+          </div>
+
+          <AgentStatusDashboard task={taskStatus} onRefresh={refreshTaskStatus} isPolling={isPolling} />
+        </section>
       </main>
     </div>
   );
