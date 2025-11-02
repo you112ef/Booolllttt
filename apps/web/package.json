@@ -1,0 +1,11 @@
+{
+  "name": "ai-coding-assistant-web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Next.js frontend for the AI coding assistant platform.",
+  "scripts": {
+    "dev": "echo \"Run pnpm create next-app to bootstrap Next.js\"",
+    "build": "echo \"Add build script once Next.js is installed\"",
+    "lint": "echo \"Add lint script once tooling is configured\""
+  }
+}

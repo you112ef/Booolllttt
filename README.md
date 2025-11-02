@@ -502,6 +502,18 @@ We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to
 
 Explore upcoming features and priorities on our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo).
 
+### Multiplatform-uitbreiding
+
+Het project wordt uitgebreid met aparte apps voor web, API en mobiel. Zie:
+- [`docs/monorepo-structure.md`](./docs/monorepo-structure.md)
+- [`docs/platform-roadmap.md`](./docs/platform-roadmap.md)
+- [`docs/mobile-architecture.md`](./docs/mobile-architecture.md)
+- [`docs/backend-architecture.md`](./docs/backend-architecture.md)
+- [`docs/infrastructure-roadmap.md`](./docs/infrastructure-roadmap.md)
+- [`docs/integration-plan.md`](./docs/integration-plan.md)
+
+Nieuwe mappen onder `apps/` en `packages/` zijn alvast voorbereid; de bestaande Remix-app blijft actief tijdens de migratie.
+
 ---
 
 ## FAQ
